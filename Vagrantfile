@@ -12,7 +12,7 @@ Vagrant.configure("2") do |config|
 
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://vagrantcloud.com/search.
-  config.vm.box = "roboxes/gentoo"
+  config.vm.box = "generic/gentoo"
 
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
@@ -63,8 +63,30 @@ Vagrant.configure("2") do |config|
   # Enable provisioning with a shell script. Additional provisioners such as
   # Ansible, Chef, Docker, Puppet and Salt are also available. Please see the
   # documentation for more information about their specific syntax and use.
-  # config.vm.provision "shell", inline: <<-SHELL
-  #   apt-get update
-  #   apt-get install -y apache2
-  # SHELL
+  config.vm.provision "shell", inline: <<-SHELL
+     emerge --sync && emerge --update @world
+
+     # レポじとりのミラーの選択です。これを遠くにすると、パッケージのアップデートなどが遅くなります。
+     emerge app-portage/mirrorselect
+     mirrorselect -i
+     # レポジトリの追加とローカルへの反映
+     emerge app-eselect/eselect-repository
+     eselect repository enable unity-gentoo
+     emerge --sync gentoo-unity
+     # USEフラグプロファイルの変更
+     eselect profile set unity-gentoo:linux/amd64/17.0/disco 
+
+     # プロファイルを変更したので、--newuseでUSEフラグの更新--deepでパッケージの依存関係の更新
+     emerge --update --deep --newuse @world
+     # デスクトップ環境作成
+     emerge unity-build-env 
+     emerge -uDNavt unity-meta
+
+     # ディスプレイマネージャーの指定
+     emerge x11-misc/lightdm
+
+     # unityはsystemdで確認するため、
+     # デスクトップ環境の反映のためシャットダウン
+     shutdown -h
+  SHELL
 end
